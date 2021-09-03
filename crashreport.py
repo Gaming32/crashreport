@@ -31,14 +31,14 @@ def _variable_summary(f: IO, vars: dict[str, Any]) -> None:
 
 
 _RECURSIVE_CUTOFF = 3
-def _trace_exchaustive(result: IO, frame: FrameType) -> None:
+def _trace_exchaustive(result: IO, tb: TracebackType) -> None:
     last_file = None
     last_line = None
     last_name = None
     count = 0
-    while frame is not None:
+    frame: FrameType
+    for (frame, lineno) in traceback.walk_tb(tb):
         co = frame.f_code
-        lineno = frame.f_lineno
         filename = co.co_filename
         name = co.co_name
         summary = traceback.FrameSummary(filename, lineno, name, lookup_line=True)
@@ -48,7 +48,7 @@ def _trace_exchaustive(result: IO, frame: FrameType) -> None:
             if count > _RECURSIVE_CUTOFF:
                 count -= _RECURSIVE_CUTOFF
                 result.write(
-                    f'  [Previous line repeated {count} more '
+                    f'  [Previous frame repeated {count} more '
                     f'time{"s" if count > 1 else ""}]\n'
                 )
             last_file = filename
@@ -57,7 +57,7 @@ def _trace_exchaustive(result: IO, frame: FrameType) -> None:
             count = 0
         count += 1
         if count > _RECURSIVE_CUTOFF:
-            frame = frame
+            frame = frame.f_back
             continue
         result.write(f'File "{filename}", line {lineno}, in {name}\n')
         if summary.line:
@@ -69,18 +69,18 @@ def _trace_exchaustive(result: IO, frame: FrameType) -> None:
     if count > _RECURSIVE_CUTOFF:
         count -= _RECURSIVE_CUTOFF
         result.write(
-            f'  [Previous line repeated {count} more '
+            f'  [Previous frame repeated {count} more '
             f'time{"s" if count > 1 else ""}]\n'
         )
 
 
 def dump_report_to_file(file: Union[str, IO], etype: Optional[Type[BaseException]], value: Optional[BaseException], tb: Optional[TracebackType]) -> None:
-    import __main__
-
     if isinstance(file, str):
         with open(file, 'w') as fp:
             dump_report_to_file(fp, etype, value, tb)
             return
+
+    import __main__
 
     # Write name and date
     file.write(f'"{__main__.__file__}" crashed at {time.strftime("%Y-%m-%dT%H:%M:%S%z")} ({time.strftime("%F %H:%M:%S %Z")})')
@@ -98,8 +98,7 @@ def dump_report_to_file(file: Union[str, IO], etype: Optional[Type[BaseException
     file.write('Following is an exhaustive stack trace (most recent call last)')
     _write_separator(file)
 
-    _trace_exchaustive(file, tb.tb_frame)
-
+    _trace_exchaustive(file, tb)
 
 
 def dump_report(etype: Optional[Type[BaseException]], value: Optional[BaseException], tb: Optional[TracebackType]) -> str:
