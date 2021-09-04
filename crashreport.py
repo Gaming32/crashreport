@@ -23,7 +23,7 @@ import sys
 import time
 import traceback
 from types import FrameType, TracebackType
-from typing import TextIO, Any, Callable, Optional, Set, Type, Union
+from typing import Any, Callable, Optional, Set, TextIO, Type, Union
 
 
 def _get_main_name() -> str:
