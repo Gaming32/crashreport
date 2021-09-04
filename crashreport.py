@@ -66,6 +66,11 @@ def _trace_exchaustive(result: IO, tb: TracebackType) -> None:
         if frame.f_locals:
             result.write('Local variables:\n')
             _variable_summary(result, frame.f_locals)
+            if frame.f_globals:
+                result.write('\n')
+        if frame.f_globals:
+            result.write('Global variables:\n')
+            _variable_summary(result, frame.f_globals)
         _write_separator(result)
         frame = frame.f_back
     if count > _RECURSIVE_CUTOFF:
@@ -83,6 +88,7 @@ def dump_report_to_file(file: Union[str, IO], etype: Optional[Type[BaseException
             return
 
     import __main__
+    etype = type(value)
 
     # Write name and date
     file.write(f'"{__main__.__file__}" crashed at {time.strftime("%Y-%m-%dT%H:%M:%S%z")} ({time.strftime("%F %H:%M:%S %Z")})')
