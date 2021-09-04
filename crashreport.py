@@ -29,7 +29,7 @@ from typing import Any, Callable, Optional, Set, TextIO, Type, Union
 __author__ = 'Josiah (Gaming32) Glosson'
 
 __license__ = 'MIT'
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 __email__ = 'gaming32i64@gmail.com'
 
 __all__ = [
@@ -184,7 +184,8 @@ file: Union[TextIO, str]
         tb = value.__traceback__
 
     # Write name and date
-    file.write(f'"{__main__.__file__}" crashed at {time.strftime("%Y-%m-%dT%H:%M:%S%z")} ({time.strftime("%F %H:%M:%S %Z")})')
+    file.write(f'"{__main__.__file__}" crashed at {time.strftime("%Y-%m-%dT%H:%M:%S%z")} ({time.strftime("%F %H:%M:%S %Z")})\n\n')
+    file.write(f'os.getcwd() => {os.getcwd()}')
     _write_separator(file)
 
     # Write traceback
