@@ -26,6 +26,20 @@ from types import FrameType, TracebackType
 from typing import Any, Callable, Optional, Set, TextIO, Type, Union
 
 
+__author__ = 'Josiah (Gaming32) Glosson'
+
+__license__ = 'MIT'
+__version__ = '1.0.0'
+__email__ = 'gaming32i64@gmail.com'
+
+__all__ = [
+    'dump_report_to_file',
+    'dump_report',
+    'format_report',
+    'inject_excepthook'
+]
+
+
 def _get_main_name() -> str:
     import __main__
     return os.path.splitext(os.path.basename(__main__.__file__))[0]
