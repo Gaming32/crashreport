@@ -29,7 +29,7 @@ from typing import Any, Callable, Optional, Set, TextIO, Type, Union
 __author__ = 'Josiah (Gaming32) Glosson'
 
 __license__ = 'MIT'
-__version__ = '1.0.1'
+__version__ = '1.0.2'
 __email__ = 'gaming32i64@gmail.com'
 
 __all__ = [
@@ -289,7 +289,9 @@ Arguments
 ---------
 callback: Callable[[Type[BaseException], BaseException, TracebackType, str], Any]
     Called with (etype, value, tb, dumped_filename) when exception passed
-    through sys.excepthook
+    through sys.excepthook. If the the exception was not a subclass of Exception
+    (such as SystemExit or KeyboardInterrupt), dumped_filename will be None, and
+    the old excepthook will be called.
 
 Returns
 -------
@@ -309,6 +311,8 @@ The old excepthook"""
             if callback is not None:
                 callback(etype, value, tb, dest)
             sys.exit(1)
+        elif callback is not None:
+            callback(etype, value, tb, None)
         old_excepthook(etype, value, tb)
 
     sys.excepthook = excepthook
