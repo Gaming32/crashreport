@@ -5,7 +5,7 @@ import sys
 import time
 import traceback
 from types import FrameType, TracebackType
-from typing import IO, Any, Callable, List, Optional, Type, Union
+from typing import IO, Any, Callable, Optional, Type, Union
 
 
 def _get_main_name() -> str:
@@ -64,6 +64,7 @@ def _trace_exchaustive(result: IO, tb: TracebackType) -> None:
         if summary.line:
             result.write(f'--->  {summary.line.strip()}\n\n')
         if frame.f_locals:
+            result.write('Local variables:\n')
             _variable_summary(result, frame.f_locals)
         _write_separator(result)
         frame = frame.f_back

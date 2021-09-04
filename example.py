@@ -4,7 +4,8 @@ crashreport.inject_excepthook()
 
 
 def main_div_by_0():
-    print(1 / 0)
+    a = 3
+    print(a / 0)
 
 
 def main_recursion():
@@ -13,4 +14,4 @@ def main_recursion():
 
 
 if __name__ == '__main__':
-    main_recursion()
+    main_div_by_0()
