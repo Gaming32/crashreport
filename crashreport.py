@@ -1,3 +1,21 @@
+"""Library for creating crash reports
+
+Positional arguments
+--------------------
+etype: Optional[Type[BaseException]]
+    The type of the exception. Ignored. For sys.excepthook
+    compatibility mainly
+value: Optional[BaseException]
+    The exception object itself. If passed as None,
+    it will default to sys.exc_info()[1]
+tb: Optional[TracebackType]
+    The traceback object. If passed as None,
+    it will default to value.__traceback__
+
+Keyword arguments
+-----------------
+"""
+
 import io
 import os
 import pprint
@@ -114,13 +132,19 @@ def _recursive_exc_var_dump(file: IO, exc: BaseException, seen: Set[int], indent
         _variable_summary(file, {'__context__': context}, indent)
 
 
-def dump_report_to_file(file: Union[str, IO],
+def dump_report_to_file(file: Union[IO, str],
         etype: Optional[Type[BaseException]], value: Optional[BaseException],
         tb: Optional[TracebackType], *, show_locals: bool = True,
         show_globals: bool = True, show_main_globals: bool = True,
         show_sys: bool = True, show_simple_tb: bool = True,
         show_exception_vars: bool = True,
         show_exc_vars_recur: bool = True) -> None:
+    """Dumps an exception dump to the specified file-like object or file name
+
+Arguments
+---------
+file: Union[IO, str]
+    A file-like object or filename to dump the report to"""
 
     if isinstance(file, str):
         with open(file, 'w') as fp:
@@ -134,8 +158,14 @@ def dump_report_to_file(file: Union[str, IO],
                 show_exc_vars_recur=show_exc_vars_recur)
             return
 
+    if value is None:
+        value = sys.exc_info()[1]
+
     import __main__
     etype = type(value)
+
+    if tb is None:
+        tb = value.__traceback__
 
     # Write name and date
     file.write(f'"{__main__.__file__}" crashed at {time.strftime("%Y-%m-%dT%H:%M:%S%z")} ({time.strftime("%F %H:%M:%S %Z")})')
@@ -184,7 +214,13 @@ def dump_report(etype: Optional[Type[BaseException]],
         show_main_globals: bool = True, show_sys: bool = True,
         show_simple_tb: bool = True, show_exception_vars: bool = True,
         show_exc_vars_recur: bool = True) -> str:
+    """Dumps a report to a file named "{main_filename}-%Y-%m-%d-%H-%M-%S.dump
+
+Returns
+-------
+The filename the report was dumped to"""
     filename = f'{_get_main_name()}-{time.strftime("%Y-%m-%d-%H-%M-%S")}.dump'
+
     dump_report_to_file(filename, etype, value, tb,
         show_locals=show_locals,
         show_globals=show_globals,
@@ -193,6 +229,7 @@ def dump_report(etype: Optional[Type[BaseException]],
         show_simple_tb=show_simple_tb,
         show_exception_vars=show_exception_vars,
         show_exc_vars_recur=show_exc_vars_recur)
+
     return filename
 
 
@@ -202,7 +239,13 @@ def format_report(etype: Optional[Type[BaseException]],
         show_main_globals: bool = True, show_sys: bool = True,
         show_simple_tb: bool = True, show_exception_vars: bool = True,
         show_exc_vars_recur: bool = True) -> str:
+    """Returns a report in string form
+
+Returns
+-------
+The string value of the report"""
     result = io.StringIO()
+
     dump_report_to_file(result, etype, value, tb,
         show_locals=show_locals,
         show_globals=show_globals,
@@ -211,14 +254,29 @@ def format_report(etype: Optional[Type[BaseException]],
         show_simple_tb=show_simple_tb,
         show_exception_vars=show_exception_vars,
         show_exc_vars_recur=show_exc_vars_recur)
+
     return result.getvalue()
 
 
-def inject_excepthook(*, show_locals: bool = True, show_globals: bool = True,
+def inject_excepthook(
+            callback: Optional[Callable[[Type[BaseException], BaseException, TracebackType, str], Any]] = None, *,
+            show_locals: bool = True, show_globals: bool = True,
             show_main_globals: bool = True, show_sys: bool = True,
             show_simple_tb: bool = True, show_exception_vars: bool = True,
             show_exc_vars_recur: bool = True
         ) -> Callable[[Type[BaseException], BaseException, TracebackType], Any]:
+    """Inject dump_report into sys.excepthook. This allows you to specify
+configuration, which is not possible if you inject the excepthook directly
+
+Arguments
+---------
+callback: Callable[[Type[BaseException], BaseException, TracebackType, str], Any]
+    Called with (etype, value, tb, dumped_filename) when exception passed
+    through sys.excepthook
+
+Returns
+-------
+The old excepthook"""
     old_excepthook = sys.excepthook
 
     def excepthook(etype, value, tb):
@@ -231,7 +289,8 @@ def inject_excepthook(*, show_locals: bool = True, show_globals: bool = True,
                 show_simple_tb=show_simple_tb,
                 show_exception_vars=show_exception_vars,
                 show_exc_vars_recur=show_exc_vars_recur)
-            print('Dumped crash report to', dest)
+            if callback is not None:
+                callback(dest)
             sys.exit(1)
         old_excepthook(etype, value, tb)
 

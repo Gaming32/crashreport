@@ -1,6 +1,6 @@
 import crashreport
 
-crashreport.inject_excepthook()
+crashreport.inject_excepthook(lambda dest: print('Dumped crash report to', dest))
 
 
 def main_div_by_0():
