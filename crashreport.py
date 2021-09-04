@@ -5,7 +5,7 @@ import sys
 import time
 import traceback
 from types import FrameType, TracebackType
-from typing import IO, Any, List, Optional, Type, Union
+from typing import IO, Any, Callable, List, Optional, Type, Union
 
 
 def _get_main_name() -> str:
@@ -112,3 +112,17 @@ def format_report(etype: Optional[Type[BaseException]], value: Optional[BaseExce
     result = io.StringIO()
     dump_report_to_file(result, etype, value, tb)
     return result.getvalue()
+
+
+def inject_excepthook() -> Callable[[Type[BaseException], BaseException, TracebackType], Any]:
+    old_excepthook = sys.excepthook
+
+    def excepthook(etype, value, tb):
+        if issubclass(etype, Exception):
+            dest = dump_report(etype, value, tb)
+            print('Dumped crash report to', dest)
+            sys.exit(1)
+        old_excepthook(etype, value, tb)
+
+    sys.excepthook = excepthook
+    return old_excepthook
