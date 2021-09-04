@@ -23,7 +23,7 @@ import sys
 import time
 import traceback
 from types import FrameType, TracebackType
-from typing import IO, Any, Callable, Optional, Set, Type, Union
+from typing import TextIO, Any, Callable, Optional, Set, Type, Union
 
 
 def _get_main_name() -> str:
@@ -31,7 +31,7 @@ def _get_main_name() -> str:
     return os.path.splitext(os.path.basename(__main__.__file__))[0]
 
 
-def _write_separator(f: IO, count: int = 1) -> int:
+def _write_separator(f: TextIO, count: int = 1) -> int:
     text = '\n'.join('='*75 for _ in range(count))
     return f.write('\n\n' + text + '\n\n')
 
@@ -40,7 +40,7 @@ def _exhaustive_vars(obj: Any) -> dict[str, Any]:
     return {name: getattr(obj, name) for name in dir(obj)}
 
 
-def _variable_summary(f: IO, vars: dict[str, Any], indent: int = 0) -> None:
+def _variable_summary(f: TextIO, vars: dict[str, Any], indent: int = 0) -> None:
     for (name, value) in vars.items():
         label = f'{" "*indent}{name} => '
         total_indent = len(label)
@@ -50,13 +50,14 @@ def _variable_summary(f: IO, vars: dict[str, Any], indent: int = 0) -> None:
 
 
 _RECURSIVE_CUTOFF = 3
-def _trace_exchaustive(result: IO, exc: BaseException, tb: TracebackType, show_locals: bool, show_globals: bool, seen: Set[int]) -> None:
+def _trace_exchaustive(result: TextIO, exc: BaseException, tb: Optional[TracebackType], show_locals: bool, show_globals: bool, seen: Set[int]) -> None:
+    if tb is None:
+        return
     seen.add(id(exc))
     last_file = None
     last_line = None
     last_name = None
     count = 0
-    frame: FrameType
     cause = exc.__cause__
     if cause is not None and id(cause) not in seen:
         _trace_exchaustive(result, cause, cause.__traceback__, show_locals, show_globals, seen)
@@ -68,6 +69,7 @@ def _trace_exchaustive(result: IO, exc: BaseException, tb: TracebackType, show_l
     result.write('Following is an exhaustive stack trace (most recent call last) for ')
     result.write(repr(exc))
     _write_separator(result)
+    frame: FrameType
     for (frame, lineno) in traceback.walk_tb(tb):
         co = frame.f_code
         filename = co.co_filename
@@ -89,7 +91,6 @@ def _trace_exchaustive(result: IO, exc: BaseException, tb: TracebackType, show_l
         count += 1
         if count > _RECURSIVE_CUTOFF:
             _write_separator(result)
-            frame = frame.f_back
             continue
         result.write(f'File "{filename}", line {lineno}, in {name}\n')
         if summary.line:
@@ -103,7 +104,6 @@ def _trace_exchaustive(result: IO, exc: BaseException, tb: TracebackType, show_l
             result.write('Global variables:\n')
             _variable_summary(result, frame.f_globals)
         _write_separator(result)
-        frame = frame.f_back
     if count > _RECURSIVE_CUTOFF:
         count -= _RECURSIVE_CUTOFF
         result.write(
@@ -112,7 +112,7 @@ def _trace_exchaustive(result: IO, exc: BaseException, tb: TracebackType, show_l
         )
 
 
-def _recursive_exc_var_dump(file: IO, exc: BaseException, seen: Set[int], indent: int = 0):
+def _recursive_exc_var_dump(file: TextIO, exc: BaseException, seen: Set[int], indent: int = 0) -> None:
     seen.add(id(exc))
     vars = _exhaustive_vars(exc)
     cause = vars.pop('__cause__')
@@ -132,7 +132,7 @@ def _recursive_exc_var_dump(file: IO, exc: BaseException, seen: Set[int], indent
         _variable_summary(file, {'__context__': context}, indent)
 
 
-def dump_report_to_file(file: Union[IO, str],
+def dump_report_to_file(file: Union[TextIO, str],
         etype: Optional[Type[BaseException]], value: Optional[BaseException],
         tb: Optional[TracebackType], *, show_locals: bool = True,
         show_globals: bool = True, show_main_globals: bool = True,
@@ -143,7 +143,7 @@ def dump_report_to_file(file: Union[IO, str],
 
 Arguments
 ---------
-file: Union[IO, str]
+file: Union[TextIO, str]
     A file-like object or filename to dump the report to"""
 
     if isinstance(file, str):
@@ -160,6 +160,8 @@ file: Union[IO, str]
 
     if value is None:
         value = sys.exc_info()[1]
+    if value is None:
+        return
 
     import __main__
     etype = type(value)
@@ -290,7 +292,7 @@ The old excepthook"""
                 show_exception_vars=show_exception_vars,
                 show_exc_vars_recur=show_exc_vars_recur)
             if callback is not None:
-                callback(dest)
+                callback(etype, value, tb, dest)
             sys.exit(1)
         old_excepthook(etype, value, tb)
 
