@@ -57,6 +57,7 @@ def _trace_exchaustive(result: IO, tb: TracebackType) -> None:
             count = 0
         count += 1
         if count > _RECURSIVE_CUTOFF:
+            _write_separator(result)
             frame = frame.f_back
             continue
         result.write(f'File "{filename}", line {lineno}, in {name}\n')
@@ -64,7 +65,7 @@ def _trace_exchaustive(result: IO, tb: TracebackType) -> None:
             result.write(f'--->  {summary.line.strip()}\n\n')
         if frame.f_locals:
             _variable_summary(result, frame.f_locals)
-            _write_separator(result)
+        _write_separator(result)
         frame = frame.f_back
     if count > _RECURSIVE_CUTOFF:
         count -= _RECURSIVE_CUTOFF
