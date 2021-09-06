@@ -29,7 +29,7 @@ from typing import Any, Callable, Optional, Set, TextIO, Type, Union
 __author__ = 'Josiah (Gaming32) Glosson'
 
 __license__ = 'MIT'
-__version__ = '1.0.2'
+__version__ = '1.1.0'
 __email__ = 'gaming32i64@gmail.com'
 
 __all__ = [
@@ -152,7 +152,9 @@ def dump_report_to_file(file: Union[TextIO, str],
         show_globals: bool = True, show_main_globals: bool = True,
         show_sys: bool = True, show_simple_tb: bool = True,
         show_exception_vars: bool = True,
-        show_exc_vars_recur: bool = True) -> None:
+        show_exc_vars_recur: bool = True,
+        custom_values: dict[str, Union[Any, Callable[[], Any]]] = None
+    ) -> None:
     """Dumps an exception dump to the specified file-like object or file name
 
 Arguments
@@ -169,7 +171,8 @@ file: Union[TextIO, str]
                 show_sys=show_sys,
                 show_simple_tb=show_simple_tb,
                 show_exception_vars=show_exception_vars,
-                show_exc_vars_recur=show_exc_vars_recur)
+                show_exc_vars_recur=show_exc_vars_recur,
+                custom_values=custom_values)
             return
 
     if value is None:
@@ -183,9 +186,17 @@ file: Union[TextIO, str]
     if tb is None:
         tb = value.__traceback__
 
-    # Write name and date
+    # Write name and date and additional info
     file.write(f'"{__main__.__file__}" crashed at {time.strftime("%Y-%m-%dT%H:%M:%S%z")} ({time.strftime("%F %H:%M:%S %Z")})\n\n')
-    file.write(f'os.getcwd() => {os.getcwd()}')
+    if custom_values is None:
+        custom_values = {
+            'os.getcwd()': os.getcwd,
+            'os.environ': (lambda: dict(os.environ)),
+        }
+    for (key, custom_value) in custom_values.items():
+        if callable(custom_value):
+            custom_values[key] = custom_value()
+    _variable_summary(file, custom_values)
     _write_separator(file)
 
     # Write traceback
@@ -230,7 +241,9 @@ def dump_report(etype: Optional[Type[BaseException]],
         show_locals: bool = True, show_globals: bool = True,
         show_main_globals: bool = True, show_sys: bool = True,
         show_simple_tb: bool = True, show_exception_vars: bool = True,
-        show_exc_vars_recur: bool = True) -> str:
+        show_exc_vars_recur: bool = True,
+        custom_values: dict[str, Union[Any, Callable[[], Any]]] = None
+    ) -> str:
     """Dumps a report to a file named "{main_filename}-%Y-%m-%d-%H-%M-%S.dump
 
 Returns
@@ -245,7 +258,8 @@ The filename the report was dumped to"""
         show_sys=show_sys,
         show_simple_tb=show_simple_tb,
         show_exception_vars=show_exception_vars,
-        show_exc_vars_recur=show_exc_vars_recur)
+        show_exc_vars_recur=show_exc_vars_recur,
+        custom_values=custom_values)
 
     return filename
 
@@ -255,7 +269,9 @@ def format_report(etype: Optional[Type[BaseException]],
         show_locals: bool = True, show_globals: bool = True,
         show_main_globals: bool = True, show_sys: bool = True,
         show_simple_tb: bool = True, show_exception_vars: bool = True,
-        show_exc_vars_recur: bool = True) -> str:
+        show_exc_vars_recur: bool = True,
+        custom_values: dict[str, Union[Any, Callable[[], Any]]] = None
+    ) -> str:
     """Returns a report in string form
 
 Returns
@@ -270,18 +286,20 @@ The string value of the report"""
         show_sys=show_sys,
         show_simple_tb=show_simple_tb,
         show_exception_vars=show_exception_vars,
-        show_exc_vars_recur=show_exc_vars_recur)
+        show_exc_vars_recur=show_exc_vars_recur,
+        custom_values=custom_values)
 
     return result.getvalue()
 
 
 def inject_excepthook(
-            callback: Optional[Callable[[Type[BaseException], BaseException, TracebackType, str], Any]] = None, *,
-            show_locals: bool = True, show_globals: bool = True,
-            show_main_globals: bool = True, show_sys: bool = True,
-            show_simple_tb: bool = True, show_exception_vars: bool = True,
-            show_exc_vars_recur: bool = True
-        ) -> Callable[[Type[BaseException], BaseException, TracebackType], Any]:
+        callback: Optional[Callable[[Type[BaseException], BaseException, TracebackType, str], Any]] = None, *,
+        show_locals: bool = True, show_globals: bool = True,
+        show_main_globals: bool = True, show_sys: bool = True,
+        show_simple_tb: bool = True, show_exception_vars: bool = True,
+        show_exc_vars_recur: bool = True,
+        custom_values: dict[str, Union[Any, Callable[[], Any]]] = None
+    ) -> Callable[[Type[BaseException], BaseException, TracebackType], Any]:
     """Inject dump_report into sys.excepthook. This allows you to specify
 configuration, which is not possible if you inject the excepthook directly
 
@@ -307,7 +325,8 @@ The old excepthook"""
                 show_sys=show_sys,
                 show_simple_tb=show_simple_tb,
                 show_exception_vars=show_exception_vars,
-                show_exc_vars_recur=show_exc_vars_recur)
+                show_exc_vars_recur=show_exc_vars_recur,
+                custom_values=custom_values)
             if callback is not None:
                 callback(etype, value, tb, dest)
             sys.exit(1)
