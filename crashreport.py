@@ -28,7 +28,7 @@ from typing import Any, Callable, Dict, Optional, Set, TextIO, Type, Union
 __author__ = 'Josiah (Gaming32) Glosson'
 
 __license__ = 'MIT'
-__version__ = '1.1.1'
+__version__ = '1.1.2'
 __email__ = 'gaming32i64@gmail.com'
 
 __all__ = [
