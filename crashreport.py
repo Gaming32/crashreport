@@ -152,7 +152,7 @@ def dump_report_to_file(file: Union[TextIO, str],
         show_sys: bool = True, show_simple_tb: bool = True,
         show_exception_vars: bool = True,
         show_exc_vars_recur: bool = True,
-        custom_values: Dict[str, Union[Any, Callable[[], Any]]] = None
+        custom_values: Optional[Dict[str, Union[Any, Callable[[], Any]]]] = None
     ) -> None:
     """Dumps an exception dump to the specified file-like object or file name
 
@@ -241,7 +241,7 @@ def dump_report(etype: Optional[Type[BaseException]],
         show_main_globals: bool = True, show_sys: bool = True,
         show_simple_tb: bool = True, show_exception_vars: bool = True,
         show_exc_vars_recur: bool = True,
-        custom_values: Dict[str, Union[Any, Callable[[], Any]]] = None
+        custom_values: Optional[Dict[str, Union[Any, Callable[[], Any]]]] = None
     ) -> str:
     """Dumps a report to a file named "{main_filename}-%Y-%m-%d-%H-%M-%S.dump
 
@@ -269,7 +269,7 @@ def format_report(etype: Optional[Type[BaseException]],
         show_main_globals: bool = True, show_sys: bool = True,
         show_simple_tb: bool = True, show_exception_vars: bool = True,
         show_exc_vars_recur: bool = True,
-        custom_values: Dict[str, Union[Any, Callable[[], Any]]] = None
+        custom_values: Optional[Dict[str, Union[Any, Callable[[], Any]]]] = None
     ) -> str:
     """Returns a report in string form
 
@@ -292,12 +292,12 @@ The string value of the report"""
 
 
 def inject_excepthook(
-        callback: Optional[Callable[[Type[BaseException], BaseException, TracebackType, str], Any]] = None, *,
+        callback: Optional[Callable[[Type[BaseException], BaseException, TracebackType, Optional[str]], Any]] = None, *,
         show_locals: bool = True, show_globals: bool = True,
         show_main_globals: bool = True, show_sys: bool = True,
         show_simple_tb: bool = True, show_exception_vars: bool = True,
         show_exc_vars_recur: bool = True,
-        custom_values: Dict[str, Union[Any, Callable[[], Any]]] = None
+        custom_values: Optional[Dict[str, Union[Any, Callable[[], Any]]]] = None
     ) -> Callable[[Type[BaseException], BaseException, TracebackType], Any]:
     """Inject dump_report into sys.excepthook. This allows you to specify
 configuration, which is not possible if you inject the excepthook directly
