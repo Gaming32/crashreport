@@ -50,7 +50,14 @@ def _write_separator(f: TextIO, count: int = 1) -> int:
 
 
 def _exhaustive_vars(obj: Any) -> Dict[str, Any]:
-    return {name: getattr(obj, name) for name in dir(obj)}
+    names = dir(obj)
+    result = {}
+    for name in names:
+        try:
+            result[name] = getattr(obj, name)
+        except Exception as e:
+            result[name] = f'<<Failed to getattr: {e.__class__.__qualname__}: {e}>>'
+    return result
 
 
 def _variable_summary(f: TextIO, vars: Dict[str, Any], indent: int = 0) -> None:
